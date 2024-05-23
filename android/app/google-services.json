@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "877164736157",
+    "project_id": "hapapp-d5c6b",
+    "storage_bucket": "hapapp-d5c6b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877164736157:android:ff8e2c7df0b7f2a0772e74",
+        "android_client_info": {
+          "package_name": "com.example.hap"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHTmhuVqeCoVp_Yo_HNBQHjdZNwCBEXnY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

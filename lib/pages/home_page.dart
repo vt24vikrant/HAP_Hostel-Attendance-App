@@ -6,19 +6,17 @@ import 'package:intl/intl.dart';
 import 'package:local_auth/local_auth.dart';
 import '../components/my_drawer.dart';
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class StudentHomePage extends StatefulWidget {
+  const StudentHomePage({super.key});
 
   @override
-  _HomePageState createState() => _HomePageState();
+  _StudentHomePageState createState() => _StudentHomePageState();
 }
 
-class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin {
+class _StudentHomePageState extends State<StudentHomePage> with SingleTickerProviderStateMixin {
   bool _attendanceMarked = false;
   final LocalAuthentication auth = LocalAuthentication();
   late AnimationController _controller;
-
-
 
   @override
   void initState() {
@@ -40,11 +38,10 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
     if (context.mounted) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LoginPage(onTap: null)), // Adjust based on your implementation
+        MaterialPageRoute(builder: (context) => const LoginOrRegister()),
       );
     }
   }
-
 
   Future<void> markAttendance() async {
     bool didAuthenticate = await auth.authenticate(
@@ -69,12 +66,12 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("H O M E"),
+        title: const Text("Student Home"),
         elevation: 0,
         actions: [
           IconButton(
-              onPressed:logout,
-              icon: Icon(Icons.logout)
+              onPressed: logout,
+              icon: const Icon(Icons.logout)
           )
         ],
       ),
@@ -103,7 +100,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                   const SizedBox(height: 40),
                   ElevatedButton.icon(
                     onPressed: _attendanceMarked ? null : markAttendance,
-                    icon: Icon(Icons.fingerprint_rounded, size: 28),
+                    icon: const Icon(Icons.fingerprint_rounded, size: 28),
                     label: const Text('Mark Attendance', style: TextStyle(fontSize: 18)),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -151,7 +148,6 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
               ),
             ),
           ),
-
           AnimatedPositioned(
             duration: const Duration(seconds: 5),
             top: 100 + (20 * _controller.value),

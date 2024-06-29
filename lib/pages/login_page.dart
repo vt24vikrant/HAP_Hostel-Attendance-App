@@ -1,17 +1,17 @@
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hbap/components/my_button.dart';
 import 'package:hbap/components/my_textfield.dart';
 import 'package:hbap/helper/helper_functions.dart';
 import 'package:hbap/pages/register_page.dart';
-
+import 'package:hbap/pages/supervisor_home_page.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
-  
   final void Function()? onTap;
 
-  LoginPage({
+  const LoginPage({
     Key? key,
     required this.onTap,
   }) : super(key: key);
@@ -22,9 +22,7 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   TextEditingController emailController = TextEditingController();
-
   TextEditingController passwordController = TextEditingController();
-
 
   void login() async {
     showDialog(
@@ -33,24 +31,48 @@ class _LoginPageState extends State<LoginPage> {
     );
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      // Sign in with email and password
+      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text,
       );
 
+      // Retrieve the user document from Firestore based on the user ID
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        throw FirebaseAuthException(code: 'user-not-found');
+      }
+
+      String role = userDoc['role'];
+
       if (context.mounted) {
         Navigator.pop(context);
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
+
+        // Navigate to the appropriate home page based on role
+        if (role == 'Student') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const StudentHomePage()),
+          );
+        } else if (role == 'Supervisor') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const SupervisorHomePage()),
+          );
+        }
       }
     } on FirebaseAuthException catch (e) {
       Navigator.pop(context);
-      displayMessageToUser(e.code, context);
+      displayMessageToUser(e.message ?? 'An error occurred', context);
+    } catch (e) {
+      Navigator.pop(context);
+      displayMessageToUser('An error occurred. Please try again.', context);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -126,20 +148,18 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ],
                   ),
-                  // Sign in button and other elements can be added here
-                  const SizedBox(
-                    height: 10,
-                  ),
-
+                  const SizedBox(height: 10),
+                  // Login button
                   MyButton(text: "Login", onTap: login),
-
+                  const SizedBox(height: 20),
+                  // Register redirection
                   Padding(
                     padding: const EdgeInsets.all(15.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Dont Have a Accout? ",
+                          "Don't Have an Account? ",
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.inversePrimary,
                           ),
@@ -148,7 +168,7 @@ class _LoginPageState extends State<LoginPage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => RegisterPage(onTap: () {},)), // Ensure this path is correct
+                              MaterialPageRoute(builder: (context) => RegisterPage(onTap: () {})), // Ensure this path is correct
                             );
                           },
                           child: const Text(

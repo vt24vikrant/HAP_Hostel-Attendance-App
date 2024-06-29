@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:hbap/components/my_button.dart';
@@ -21,10 +22,9 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   TextEditingController usernameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
-
   TextEditingController passwordController = TextEditingController();
-
   TextEditingController confirmPwController = TextEditingController();
+  String selectedRole = 'Student';
 
   void registerUser() async {
     // Show a circular progress bar
@@ -49,6 +49,13 @@ class _RegisterPageState extends State<RegisterPage> {
         password: passwordController.text,
       );
 
+      // Save the user information in Firestore
+      await FirebaseFirestore.instance.collection('users').doc(credential.user!.uid).set({
+        'username': usernameController.text,
+        'email': emailController.text,
+        'role': selectedRole,
+      });
+
       Navigator.pop(context); // Close the progress bar
 
       // Navigate to the LoginPage
@@ -71,7 +78,6 @@ class _RegisterPageState extends State<RegisterPage> {
       print(e);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -106,11 +112,11 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    "R E G I S  T E R",
+                    "R E G I S T E R",
                     style: TextStyle(fontSize: 16),
                   ),
                   const SizedBox(height: 40),
-                  // Email text field
+                  // Username text field
                   Padding(
                     padding: const EdgeInsets.all(10.0),
                     child: MyTextField(
@@ -121,6 +127,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ),
                   const SizedBox(height: 5),
+                  // Email text field
                   Padding(
                     padding: const EdgeInsets.all(10.0),
                     child: MyTextField(
@@ -141,8 +148,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: passwordController,
                     ),
                   ),
-
                   const SizedBox(height: 5),
+                  // Confirm Password text field
                   Padding(
                     padding: const EdgeInsets.all(10.0),
                     child: MyTextField(
@@ -150,6 +157,26 @@ class _RegisterPageState extends State<RegisterPage> {
                       hintText: "Confirm Password",
                       obscureText: true,
                       controller: confirmPwController,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Role selection
+                  Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: DropdownButton<String>(
+                      value: selectedRole,
+                      items: <String>['Student', 'Supervisor']
+                          .map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedRole = newValue!;
+                        });
+                      },
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -168,20 +195,18 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ],
                   ),
-                  // Sign in button and other elements can be added here
-                  const SizedBox(
-                    height: 10,
-                  ),
-
+                  const SizedBox(height: 10),
+                  // Register button
                   MyButton(text: "Register", onTap: registerUser),
-
+                  const SizedBox(height: 20),
+                  // Login redirection
                   Padding(
                     padding: const EdgeInsets.all(15.0),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Already Have a Accout? ",
+                          "Already Have an Account? ",
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.inversePrimary,
                           ),
@@ -190,7 +215,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => LoginPage(onTap: (){})), // Ensure this path is correct
+                              MaterialPageRoute(builder: (context) => LoginPage(onTap: () {})), // Ensure this path is correct
                             );
                           },
                           child: const Text(

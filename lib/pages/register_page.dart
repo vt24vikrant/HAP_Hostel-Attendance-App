@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hbap/components/my_button.dart';
 import 'package:hbap/components/my_textfield.dart';
 import 'package:hbap/pages/login_page.dart';
-
 import '../helper/helper_functions.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -25,6 +26,27 @@ class _RegisterPageState extends State<RegisterPage> {
   TextEditingController passwordController = TextEditingController();
   TextEditingController confirmPwController = TextEditingController();
   String selectedRole = 'Student';
+
+  late String deviceId;
+
+  @override
+  void initState() {
+    super.initState();
+    _initDeviceInfo();
+  }
+
+  Future<void> _initDeviceInfo() async {
+    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      deviceId = androidInfo.id; // Use 'id' for the Android device ID
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
+      IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+      deviceId = iosInfo.identifierForVendor!; // Unique ID for iOS devices
+    } else {
+      deviceId = ''; // Default or handle unsupported platforms
+    }
+  }
 
   void registerUser() async {
     // Show a circular progress bar
@@ -54,6 +76,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'username': usernameController.text,
         'email': emailController.text,
         'role': selectedRole,
+        'deviceId': deviceId, // Save the device ID
       });
 
       Navigator.pop(context); // Close the progress bar
@@ -212,12 +235,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => LoginPage(onTap: () {})), // Ensure this path is correct
-                            );
-                          },
+                          onTap: widget.onTap,
                           child: const Text(
                             "Login Here!",
                             style: TextStyle(

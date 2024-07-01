@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:hbap/components/my_button.dart';
 import 'package:hbap/components/my_textfield.dart';
 import 'package:hbap/pages/login_page.dart';
+import 'package:hbap/pages/register_fingerprint.dart';
 import '../helper/helper_functions.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -77,17 +78,28 @@ class _RegisterPageState extends State<RegisterPage> {
         'email': emailController.text,
         'role': selectedRole,
         'deviceId': deviceId, // Save the device ID
+        'fingerprintRegistered': false, // Initialize fingerprint registration status
       });
 
       Navigator.pop(context); // Close the progress bar
 
-      // Navigate to the LoginPage
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => LoginPage(onTap: () {}),
-        ),
-      );
+      // Navigate to RegisterFingerprint if the role is Student
+      if (selectedRole == 'Student') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RegisterFingerprint(userId: credential.user!.uid),
+          ),
+        );
+      } else {
+        // Navigate to the LoginPage for Supervisors
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginPage(onTap: () {}),
+          ),
+        );
+      }
     } on FirebaseAuthException catch (e) {
       Navigator.pop(context); // Close the progress bar
       displayMessageToUser(e.code, context);
@@ -101,6 +113,7 @@ class _RegisterPageState extends State<RegisterPage> {
       print(e);
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

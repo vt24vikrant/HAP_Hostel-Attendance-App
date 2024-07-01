@@ -41,6 +41,9 @@ dependencies:
   local_auth: ^2.1.6
   cloud_firestore: ^4.14.0
   device_info_plus: ^9.1.2
+  connectivity_plus: ^5.0.2
+  wifi_info_flutter: ^2.0.2
+  permission_handler: ^11.0.1
 
 
 dev_dependencies:

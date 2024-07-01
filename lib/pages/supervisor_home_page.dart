@@ -1,9 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hbap/auth/login_or_register.dart';
-import 'package:hbap/pages/regStudent.dart';
 import 'package:intl/intl.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:hbap/auth/login_or_register.dart';
+import 'package:hbap/pages/regStudent.dart';
 import '../components/my_drawer.dart';
 
 class SupervisorHomePage extends StatefulWidget {
@@ -16,6 +17,13 @@ class SupervisorHomePage extends StatefulWidget {
 class _SupervisorHomePageState extends State<SupervisorHomePage> with SingleTickerProviderStateMixin {
   final LocalAuthentication auth = LocalAuthentication();
   late AnimationController _controller;
+
+  final _formKey = GlobalKey<FormState>();
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
+
+  final String _ssid = 'ABVIIITM';
+  final String _bssid = '9c:d5:7d:91:32:8f';
 
   @override
   void initState() {
@@ -54,6 +62,63 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> with SingleTick
     if (didAuthenticate) {
       // Add logic if needed for successful authentication
     }
+  }
+
+  Future<void> setAttendanceAndWifiData() async {
+    if (_formKey.currentState!.validate() && _startTime != null && _endTime != null) {
+      try {
+        await FirebaseFirestore.instance.collection('settings').doc('attendance').set({
+          'startTime': DateFormat('HH:mm').format(DateTime(0, 1, 1, _startTime!.hour, _startTime!.minute)),
+          'endTime': DateFormat('HH:mm').format(DateTime(0, 1, 1, _endTime!.hour, _endTime!.minute)),
+          'ssid': _ssid,
+          'bssid': _bssid,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Attendance time slot set successfully')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to set data: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context, bool isStartTime) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: isStartTime ? _startTime ?? TimeOfDay.now() : _endTime ?? TimeOfDay.now(),
+    );
+    if (picked != null && picked != (isStartTime ? _startTime : _endTime)) {
+      setState(() {
+        if (isStartTime) {
+          _startTime = picked;
+        } else {
+          _endTime = picked;
+        }
+      });
+    }
+  }
+
+  void _showWifiDetails() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('WiFi Details'),
+          content: Text('SSID: $_ssid\nBSSID: $_bssid'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('OK'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -104,6 +169,37 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> with SingleTick
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.inversePrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            ElevatedButton(
+                              onPressed: () => _selectTime(context, true),
+                              child: Text(_startTime == null ? 'Select Start Time' : 'Start Time: ${_startTime!.format(context)}'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => _selectTime(context, false),
+                              child: Text(_endTime == null ? 'Select End Time' : 'End Time: ${_endTime!.format(context)}'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: setAttendanceAndWifiData,
+                          child: const Text('Set Attendance Time'),
+                        ),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: _showWifiDetails,
+                          child: const Text('Show WiFi Details'),
+                        ),
+                      ],
                     ),
                   ),
                 ],

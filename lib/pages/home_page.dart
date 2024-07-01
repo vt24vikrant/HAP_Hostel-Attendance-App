@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:hbap/auth/login_or_register.dart';
-import 'package:hbap/pages/login_page.dart';
 import 'package:intl/intl.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../components/my_drawer.dart';
+import '../helper/markAttendance.dart';
 
 class StudentHomePage extends StatefulWidget {
   const StudentHomePage({super.key});
@@ -17,6 +18,7 @@ class _StudentHomePageState extends State<StudentHomePage> with SingleTickerProv
   bool _attendanceMarked = false;
   final LocalAuthentication auth = LocalAuthentication();
   late AnimationController _controller;
+  String? _attendanceStatus;
 
   @override
   void initState() {
@@ -25,6 +27,7 @@ class _StudentHomePageState extends State<StudentHomePage> with SingleTickerProv
       duration: const Duration(seconds: 5),
       vsync: this,
     )..repeat(reverse: true);
+    _fetchAttendanceStatus();
   }
 
   @override
@@ -43,20 +46,29 @@ class _StudentHomePageState extends State<StudentHomePage> with SingleTickerProv
     }
   }
 
-  Future<void> markAttendance() async {
-    bool didAuthenticate = await auth.authenticate(
-      localizedReason: 'Please authenticate to mark attendance',
-      options: const AuthenticationOptions(
-        useErrorDialogs: true,
-        stickyAuth: true,
-      ),
-    );
+  Future<void> _fetchAttendanceStatus() async {
+    try {
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+      String todayDate = DateFormat('y-MM-dd').format(DateTime.now());
 
-    if (didAuthenticate) {
+      DocumentSnapshot attendanceSnapshot = await FirebaseFirestore.instance.collection('attendance').doc(userId).get();
+
+      if (attendanceSnapshot.exists) {
+        Map<String, dynamic> attendanceData = attendanceSnapshot.data() as Map<String, dynamic>;
+        setState(() {
+          _attendanceStatus = attendanceData[todayDate] ?? 'Absent';
+          _attendanceMarked = _attendanceStatus == 'Present';
+        });
+      } else {
+        setState(() {
+          _attendanceStatus = 'Absent';
+          _attendanceMarked = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        _attendanceMarked = true;
+        _attendanceStatus = 'Error fetching attendance';
       });
-      // Add logic to mark attendance in your backend or database
     }
   }
 
@@ -70,8 +82,8 @@ class _StudentHomePageState extends State<StudentHomePage> with SingleTickerProv
         elevation: 0,
         actions: [
           IconButton(
-              onPressed: logout,
-              icon: const Icon(Icons.logout)
+            onPressed: logout,
+            icon: const Icon(Icons.logout),
           )
         ],
       ),
@@ -99,7 +111,10 @@ class _StudentHomePageState extends State<StudentHomePage> with SingleTickerProv
                   ),
                   const SizedBox(height: 40),
                   ElevatedButton.icon(
-                    onPressed: _attendanceMarked ? null : markAttendance,
+                    onPressed: _attendanceMarked ? null : () async {
+                      await markAttendance(context, auth);
+                      _fetchAttendanceStatus();
+                    },
                     icon: const Icon(Icons.fingerprint_rounded, size: 28),
                     label: const Text('Mark Attendance', style: TextStyle(fontSize: 18)),
                     style: ElevatedButton.styleFrom(
@@ -111,7 +126,7 @@ class _StudentHomePageState extends State<StudentHomePage> with SingleTickerProv
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    _attendanceMarked ? 'Present' : 'Absent',
+                    _attendanceStatus ?? 'Loading...',
                     style: TextStyle(
                       fontSize: 18,
                       color: _attendanceMarked ? Colors.green : Colors.red,

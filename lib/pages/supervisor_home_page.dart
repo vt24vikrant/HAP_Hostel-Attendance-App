@@ -6,6 +6,8 @@ import 'package:local_auth/local_auth.dart';
 import 'package:hbap/auth/login_or_register.dart';
 import 'package:hbap/pages/regStudent.dart';
 import '../components/my_drawer.dart';
+import 'attendance_monitor.dart';
+
 
 class SupervisorHomePage extends StatefulWidget {
   const SupervisorHomePage({super.key});
@@ -143,9 +145,18 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> with SingleTick
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.monitor),  // New icon button for attendance monitor
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => AttendanceMonitorPage()),  // Navigate to the Attendance Monitor page
+              );
+            },
+          ),
         ],
       ),
-      drawer: MyDrawer(),
+      drawer: MyDrawer(role: 'Supervisor'),
       body: Stack(
         children: [
           Container(

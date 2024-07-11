@@ -87,7 +87,7 @@ class _StudentHomePageState extends State<StudentHomePage> with SingleTickerProv
           )
         ],
       ),
-      drawer: MyDrawer(),
+      drawer: MyDrawer(role: 'Student'),
       body: Stack(
         children: [
           Container(

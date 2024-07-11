@@ -44,6 +44,7 @@ dependencies:
   connectivity_plus: ^5.0.2
   wifi_info_flutter: ^2.0.2
   permission_handler: ^11.0.1
+  flutter_heatmap_calendar: ^1.0.5
 
 
 dev_dependencies:

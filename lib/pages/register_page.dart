@@ -26,6 +26,7 @@ class _RegisterPageState extends State<RegisterPage> {
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   TextEditingController confirmPwController = TextEditingController();
+  TextEditingController roomNumberController = TextEditingController();
   String selectedRole = 'Student';
 
   late String deviceId;
@@ -49,7 +50,7 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  void registerUser() async {
+  Future<void> registerUser() async {
     // Show a circular progress bar
     showDialog(
       context: context,
@@ -65,8 +66,20 @@ class _RegisterPageState extends State<RegisterPage> {
       return; // Exit the function if passwords don't match
     }
 
-    // Try creating the user
     try {
+      // Check if the device ID is already registered without authentication
+      QuerySnapshot existingDevice = await FirebaseFirestore.instance
+          .collection('users')
+          .where('deviceId', isEqualTo: deviceId)
+          .get();
+
+      if (existingDevice.docs.isNotEmpty) {
+        Navigator.pop(context);
+        displayMessageToUser("Device is already registered!", context);
+        return; // Exit the function if the device is already registered
+      }
+
+      // Create the user
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailController.text,
         password: passwordController.text,
@@ -79,6 +92,7 @@ class _RegisterPageState extends State<RegisterPage> {
         'role': selectedRole,
         'deviceId': deviceId, // Save the device ID
         'fingerprintRegistered': false, // Initialize fingerprint registration status
+        'roomNumber': roomNumberController.text, // Save the room number
       });
 
       Navigator.pop(context); // Close the progress bar
@@ -113,7 +127,6 @@ class _RegisterPageState extends State<RegisterPage> {
       print(e);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -195,6 +208,17 @@ class _RegisterPageState extends State<RegisterPage> {
                       controller: confirmPwController,
                     ),
                   ),
+                  const SizedBox(height: 5),
+                  // Room Number text field
+                  Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: MyTextField(
+                      labelText: "Room Number",
+                      hintText: "Room Number",
+                      obscureText: false,
+                      controller: roomNumberController,
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   // Role selection
                   Padding(
@@ -242,16 +266,17 @@ class _RegisterPageState extends State<RegisterPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "Already Have an Account? ",
+                          "Already have an account?",
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.inversePrimary,
+                            color: Theme.of(context).colorScheme.secondary,
                           ),
                         ),
                         GestureDetector(
                           onTap: widget.onTap,
-                          child: const Text(
-                            "Login Here!",
+                          child: Text(
+                            " Login now",
                             style: TextStyle(
+                              color: Theme.of(context).colorScheme.primary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -260,43 +285,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     ),
                   ),
                 ],
-              ),
-            ),
-          ),
-          // Decorative shapes
-          Positioned(
-            top: 20,
-            left: 50,
-            child: Container(
-              width: 150,
-              height: 90,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 10,
-            right: 240,
-            child: Container(
-              width: 40,
-              height: 170,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(35),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 40,
-            right: 180,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                shape: BoxShape.circle,
               ),
             ),
           ),

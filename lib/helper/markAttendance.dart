@@ -7,46 +7,49 @@ import 'package:local_auth/local_auth.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wifi_info_flutter/wifi_info_flutter.dart';
+import 'package:geolocator/geolocator.dart';
 
 Future<void> markAttendance(BuildContext context, LocalAuthentication auth) async {
   showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          content: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Checking...'),
-              CircularProgressIndicator(),
-            ],
-          ),
-        );
-      });
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        content: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Checking...'),
+            CircularProgressIndicator(),
+          ],
+        ),
+      );
+    },
+  );
 
   try {
-    // Request permissions
-    var status = await Permission.location.request();
-    if (!status.isGranted) {
-      throw 'Location permission is required to fetch WiFi information';
+    // Request location permissions
+    var locationStatus = await Permission.location.request();
+    if (!locationStatus.isGranted) {
+      throw 'Location permission is required to fetch location information';
     }
 
-    // Check network state
+    // Check connectivity
     var connectivityResult = await (Connectivity().checkConnectivity());
     if (connectivityResult != ConnectivityResult.wifi) {
       throw 'Not connected to a WiFi network';
     }
 
-    // Get settings from Firestore
+    // Fetch settings from Firestore
     DocumentSnapshot settingsSnapshot = await FirebaseFirestore.instance.collection('settings').doc('attendance').get();
     if (!settingsSnapshot.exists) {
       throw 'Attendance settings not found in the database';
     }
 
-    // Extract settings data
     Map<String, dynamic> settings = settingsSnapshot.data() as Map<String, dynamic>;
     String ssid = settings['ssid'];
     String bssid = settings['bssid'];
+
+    // Parse startTime and endTime
     TimeOfDay startTime = TimeOfDay(
       hour: int.parse(settings['startTime'].split(":")[0]),
       minute: int.parse(settings['startTime'].split(":")[1]),
@@ -56,14 +59,12 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
       minute: int.parse(settings['endTime'].split(":")[1]),
     );
 
-    // Check current time
     TimeOfDay now = TimeOfDay.now();
     if (!(now.hour > startTime.hour || (now.hour == startTime.hour && now.minute >= startTime.minute)) ||
         !(now.hour < endTime.hour || (now.hour == endTime.hour && now.minute <= endTime.minute))) {
       throw 'Current time is not within the attendance time slot';
     }
 
-    // Check fingerprint authentication
     bool didAuthenticate = await auth.authenticate(
       localizedReason: 'Please authenticate to mark attendance',
       options: const AuthenticationOptions(
@@ -76,17 +77,15 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
       throw 'Fingerprint authentication failed';
     }
 
-    // Check device ID
     DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
     AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-    String currentdeviceId = androidInfo.id;
+    String currentDeviceId = androidInfo.id;
 
-    // Check WiFi details
     WifiInfo wifiInfo = WifiInfo();
     String currentSsid = await wifiInfo.getWifiName() ?? '';
     String currentBssid = await wifiInfo.getWifiBSSID() ?? '';
 
-    print('Current DeviceId: $currentdeviceId');
+    print('Current DeviceId: $currentDeviceId');
     print('Current SSID: $currentSsid');
     print('Current BSSID: $currentBssid');
 
@@ -102,50 +101,70 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
 
     String registeredDeviceId = userDoc['deviceId'];
     print('Registered DeviceId: $registeredDeviceId');
-    if (registeredDeviceId != currentdeviceId) {
+    if (registeredDeviceId != currentDeviceId) {
       throw 'Device ID does not match the registered device';
     }
 
-    // Mark attendance in Firestore
-    String todayDate = DateFormat('y-MM-dd').format(DateTime.now());
+    // Geofencing
+    GeoPoint geofenceCenter = settings['geofenceCenter'];
+    double geofenceCenterLat = geofenceCenter.latitude.toDouble();
+    double geofenceCenterLng = geofenceCenter.longitude.toDouble();
+    double geofenceRadius = double.parse(settings['geofenceRadius']);  // Convert string to double
+
+    Position currentPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    double distance = Geolocator.distanceBetween(
+      currentPosition.latitude,
+      currentPosition.longitude,
+      geofenceCenterLat,
+      geofenceCenterLng,
+    );
+
+    print('Distance: $distance');
+    if (distance > geofenceRadius) {
+      throw 'Outside the geofence area';
+    }
+
+    String todayDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     await FirebaseFirestore.instance.collection('attendance').doc(userId).set({
       todayDate: 'Present',
-      'deviceId': currentdeviceId,
+      'deviceId': currentDeviceId,
       'lastUpdated': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 
     Navigator.pop(context); // Close the checking dialog
 
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            content: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(child: Text('Attendance marked successfully!')),
-                Icon(Icons.check_circle, color: Colors.green),
-              ],
-            ),
-          );
-        });
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(child: Text('Attendance marked successfully!')),
+              Icon(Icons.check_circle, color: Colors.green),
+            ],
+          ),
+        );
+      },
+    );
 
   } catch (e) {
     Navigator.pop(context); // Close the checking dialog
 
     showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            content: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(child: Text('Error: $e')),
-                Icon(Icons.error, color: Colors.red),
-              ],
-            ),
-          );
-        });
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(child: Text('Error: $e')),
+              Icon(Icons.error, color: Colors.red),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

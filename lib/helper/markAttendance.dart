@@ -79,14 +79,14 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
     // Check device ID
     DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
     AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-    String deviceId = androidInfo.id;
+    String currentdeviceId = androidInfo.id;
 
     // Check WiFi details
     WifiInfo wifiInfo = WifiInfo();
     String currentSsid = await wifiInfo.getWifiName() ?? '';
     String currentBssid = await wifiInfo.getWifiBSSID() ?? '';
 
-    // Print current SSID and BSSID to the console
+    print('Current DeviceId: $currentdeviceId');
     print('Current SSID: $currentSsid');
     print('Current BSSID: $currentBssid');
 
@@ -94,13 +94,24 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
       throw 'Connected to incorrect WiFi network';
     }
 
-    // Mark attendance in Firestore
     String userId = FirebaseAuth.instance.currentUser!.uid;
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      throw 'User not found in the database';
+    }
+
+    String registeredDeviceId = userDoc['deviceId'];
+    print('Registered DeviceId: $registeredDeviceId');
+    if (registeredDeviceId != currentdeviceId) {
+      throw 'Device ID does not match the registered device';
+    }
+
+    // Mark attendance in Firestore
     String todayDate = DateFormat('y-MM-dd').format(DateTime.now());
 
     await FirebaseFirestore.instance.collection('attendance').doc(userId).set({
       todayDate: 'Present',
-      'deviceId': deviceId,
+      'deviceId': currentdeviceId,
       'lastUpdated': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
 

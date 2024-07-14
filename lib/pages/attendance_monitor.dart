@@ -21,7 +21,6 @@ class _AttendanceMonitorPageState extends State<AttendanceMonitorPage> {
   Future<void> checkSupervisorRole() async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      // Handle unauthenticated user
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Access denied: Unauthenticated.')),
@@ -37,7 +36,6 @@ class _AttendanceMonitorPageState extends State<AttendanceMonitorPage> {
     if (userDoc.exists && userDoc['role'] == 'Supervisor') {
       fetchAttendanceData();
     } else {
-      // Show an error message or navigate to a different page
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Access denied: Supervisors only.')),
@@ -81,6 +79,7 @@ class _AttendanceMonitorPageState extends State<AttendanceMonitorPage> {
 
     setState(() {
       attendanceData = data;
+      print('Fetched Attendance Data: $attendanceData'); // Debug print
     });
   }
 
@@ -102,7 +101,12 @@ class _AttendanceMonitorPageState extends State<AttendanceMonitorPage> {
       selectedDate = isPrevious
           ? selectedDate.subtract(Duration(days: 1))
           : selectedDate.add(Duration(days: 1));
+      print('Selected Date: ${DateFormat('yyyy-MM-dd').format(selectedDate)}'); // Debug print
     });
+  }
+
+  bool _isSameDate(DateTime date1, DateTime date2) {
+    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
   }
 
   @override
@@ -111,13 +115,16 @@ class _AttendanceMonitorPageState extends State<AttendanceMonitorPage> {
     Map<String, Map<String, dynamic>> filteredData = {};
     attendanceData.forEach((roomNumber, userData) {
       final attendanceMap = userData['attendance'] as Map<DateTime, int>;
-      // Add default 'Absent' if no attendance data for the selected date
-      int status = attendanceMap.containsKey(selectedDate)
-          ? attendanceMap[selectedDate]!
-          : 4; // Default to Absent
+      print('Room $roomNumber Attendance Map: $attendanceMap'); // Debug print for each room
+      int status = 2; // Default to Absent if no data for the selected date
+      attendanceMap.forEach((date, value) {
+        if (_isSameDate(date, selectedDate)) {
+          status = value;
+        }
+      });
       filteredData[roomNumber] = {
         'username': userData['username'],
-        'attendance': {selectedDate: status},
+        'status': status,
       };
     });
 
@@ -126,6 +133,8 @@ class _AttendanceMonitorPageState extends State<AttendanceMonitorPage> {
       filteredData.entries.toList()
         ..sort((a, b) => a.key.compareTo(b.key)),
     );
+
+    print('Filtered Data: $sortedFilteredData'); // Debug print
 
     return Scaffold(
       appBar: AppBar(
@@ -161,17 +170,17 @@ class _AttendanceMonitorPageState extends State<AttendanceMonitorPage> {
             child: GridView.builder(
               padding: const EdgeInsets.all(16.0),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 3 / 2,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
+                crossAxisCount: 2, // Number of columns in the grid
+                childAspectRatio: 1, // Aspect ratio of the cards to make them square
+                mainAxisSpacing: 10, // Space between rows
+                crossAxisSpacing: 10, // Space between columns
               ),
               itemCount: sortedFilteredData.keys.length,
               itemBuilder: (context, index) {
                 String roomNumber = sortedFilteredData.keys.elementAt(index);
                 Map<String, dynamic> userData = sortedFilteredData[roomNumber]!;
                 String username = userData['username'];
-                int status = userData['attendance'][selectedDate]!;
+                int status = userData['status'];
 
                 Color statusColor;
                 String statusText;
@@ -194,17 +203,24 @@ class _AttendanceMonitorPageState extends State<AttendanceMonitorPage> {
                 }
 
                 return Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0), // Rounded corners
+                  ),
+                  color: Colors.white,
+                  elevation: 4.0, // Shadow effect
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Text(
                           'Room $roomNumber',
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
+                        SizedBox(height: 8.0),
                         Text('Username: $username'),
-                        Spacer(),
+                        SizedBox(height: 8.0),
                         Text(
                           statusText,
                           style: TextStyle(color: statusColor, fontSize: 18),

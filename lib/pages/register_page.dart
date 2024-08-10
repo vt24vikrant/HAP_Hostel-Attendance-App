@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:hbap/components/my_button.dart';
 import 'package:hbap/components/my_textfield.dart';
 import 'package:hbap/pages/login_page.dart';
-import 'package:hbap/pages/register_fingerprint.dart';
+import 'package:hbap/pages/register_face.dart';  // Import the RegisterFace page
 import '../helper/helper_functions.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -48,6 +48,7 @@ class _RegisterPageState extends State<RegisterPage> {
     } else {
       deviceId = ''; // Default or handle unsupported platforms
     }
+    setState(() {}); // Update the state to ensure deviceId is initialized
   }
 
   Future<void> registerUser() async {
@@ -66,18 +67,20 @@ class _RegisterPageState extends State<RegisterPage> {
       return; // Exit the function if passwords don't match
     }
 
-    try {
-      // Check if the device ID is already registered without authentication
-      QuerySnapshot existingDevice = await FirebaseFirestore.instance
-          .collection('users')
-          .where('deviceId', isEqualTo: deviceId)
-          .get();
+    print(deviceId);
 
-      if (existingDevice.docs.isNotEmpty) {
-        Navigator.pop(context);
-        displayMessageToUser("Device is already registered!", context);
-        return; // Exit the function if the device is already registered
-      }
+    try {
+      // Check if the device ID is already registered
+      // QuerySnapshot existingDevice = await FirebaseFirestore.instance
+      //     .collection('users')
+      //     .where('deviceId', isEqualTo: deviceId)
+      //     .get();
+      //
+      // if (existingDevice.docs.isNotEmpty) {
+      //   Navigator.pop(context);
+      //   displayMessageToUser("Device is already registered!", context);
+      //   return; // Exit the function if the device is already registered
+      // }
 
       // Create the user
       final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -93,16 +96,17 @@ class _RegisterPageState extends State<RegisterPage> {
         'deviceId': deviceId, // Save the device ID
         'fingerprintRegistered': false, // Initialize fingerprint registration status
         'roomNumber': roomNumberController.text, // Save the room number
+        'faceData': null, // Initialize face data field
       });
 
       Navigator.pop(context); // Close the progress bar
 
-      // Navigate to RegisterFingerprint if the role is Student
+      // Navigate to RegisterFace if the role is Student
       if (selectedRole == 'Student') {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => RegisterFingerprint(userId: credential.user!.uid),
+            builder: (context) => RegisterFace(userId: credential.user!.uid),
           ),
         );
       } else {

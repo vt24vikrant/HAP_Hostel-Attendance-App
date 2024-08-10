@@ -1,13 +1,20 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:local_auth/local_auth.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:local_auth/local_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:wifi_info_flutter/wifi_info_flutter.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:google_ml_kit/google_ml_kit.dart';
+
+import '../pages/face_verification.dart';
+import 'face_recognition.dart';
 
 Future<void> markAttendance(BuildContext context, LocalAuthentication auth) async {
   showDialog(
@@ -45,36 +52,29 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
       throw 'Attendance settings not found in the database';
     }
 
-    Map<String, dynamic> settings = settingsSnapshot.data() as Map<String, dynamic>;
-    String ssid = settings['ssid'];
-    String bssid = settings['bssid'];
+    Map<String, dynamic>? settings = settingsSnapshot.data() as Map<String, dynamic>?;
+
+    if (settings == null) {
+      throw 'Settings data is null';
+    }
+
+    String ssid = settings['ssid'] ?? '';
+    String bssid = settings['bssid'] ?? '';
 
     // Parse startTime and endTime
     TimeOfDay startTime = TimeOfDay(
-      hour: int.parse(settings['startTime'].split(":")[0]),
-      minute: int.parse(settings['startTime'].split(":")[1]),
+      hour: int.parse(settings['startTime']?.split(":")[0] ?? '0'),
+      minute: int.parse(settings['startTime']?.split(":")[1] ?? '0'),
     );
     TimeOfDay endTime = TimeOfDay(
-      hour: int.parse(settings['endTime'].split(":")[0]),
-      minute: int.parse(settings['endTime'].split(":")[1]),
+      hour: int.parse(settings['endTime']?.split(":")[0] ?? '0'),
+      minute: int.parse(settings['endTime']?.split(":")[1] ?? '0'),
     );
 
     TimeOfDay now = TimeOfDay.now();
     if (!(now.hour > startTime.hour || (now.hour == startTime.hour && now.minute >= startTime.minute)) ||
         !(now.hour < endTime.hour || (now.hour == endTime.hour && now.minute <= endTime.minute))) {
       throw 'Current time is not within the attendance time slot';
-    }
-
-    bool didAuthenticate = await auth.authenticate(
-      localizedReason: 'Please authenticate to mark attendance',
-      options: const AuthenticationOptions(
-        useErrorDialogs: true,
-        stickyAuth: true,
-      ),
-    );
-
-    if (!didAuthenticate) {
-      throw 'Fingerprint authentication failed';
     }
 
     DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
@@ -99,17 +99,33 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
       throw 'User not found in the database';
     }
 
-    String registeredDeviceId = userDoc['deviceId'];
+    String registeredDeviceId = userDoc['deviceId'] ?? '';
     print('Registered DeviceId: $registeredDeviceId');
     if (registeredDeviceId != currentDeviceId) {
       throw 'Device ID does not match the registered device';
     }
 
+    // Navigate to FaceVerificationPage for face recognition
+    bool isFaceVerified = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FaceVerificationPage(userId: userId),
+      ),
+    );
+
+    if (!isFaceVerified) {
+      throw 'Face verification failed';
+    }
+
     // Geofencing
-    GeoPoint geofenceCenter = settings['geofenceCenter'];
+    GeoPoint? geofenceCenter = settings['geofenceCenter'] as GeoPoint?;
+    if (geofenceCenter == null) {
+      throw 'Geofence center is not defined in the settings';
+    }
+
     double geofenceCenterLat = geofenceCenter.latitude.toDouble();
     double geofenceCenterLng = geofenceCenter.longitude.toDouble();
-    double geofenceRadius = double.parse(settings['geofenceRadius']);  // Convert string to double
+    double geofenceRadius = double.tryParse(settings['geofenceRadius'] ?? '0') ?? 0;
 
     Position currentPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
     double distance = Geolocator.distanceBetween(
@@ -168,3 +184,4 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
     );
   }
 }
+

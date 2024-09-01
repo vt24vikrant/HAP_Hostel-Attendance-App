@@ -105,7 +105,7 @@ class FaceRecognition {
   }
 
   // Compare two face embeddings
-  bool _compareEmbeddings(List<double> embedding1, List<double> embedding2, {double threshold = 0.279}) {
+  bool _compareEmbeddings(List<double> embedding1, List<double> embedding2, {double threshold = 0.23}) {
     if (embedding1.length != embedding2.length) {
       print('Embedding lengths do not match. Length1: ${embedding1.length}, Length2: ${embedding2.length}');
       return false;

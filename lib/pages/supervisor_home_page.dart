@@ -24,9 +24,8 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> with SingleTick
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
 
-  final String _ssid = 'ABVIIITM';
-  final String _bssid = '9c:d5:7d:91:32:8f';
-
+  final String _ssid = 'AndroidWifi';
+  final String _bssid = '00:13:10:85:fe:01';
   @override
   void initState() {
     super.initState();
@@ -74,6 +73,8 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> with SingleTick
           'endTime': DateFormat('HH:mm').format(DateTime(0, 1, 1, _endTime!.hour, _endTime!.minute)),
           'ssid': _ssid,
           'bssid': _bssid,
+          'geofenceCenter': GeoPoint(26.25, 78.1697),
+          'geofenceRadius': "60.0",
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -108,11 +109,11 @@ class _SupervisorHomePageState extends State<SupervisorHomePage> with SingleTick
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('WiFi Details'),
+          title: const Text('WiFi Details'),
           content: Text('SSID: $_ssid\nBSSID: $_bssid'),
           actions: <Widget>[
             TextButton(
-              child: Text('OK'),
+              child: const Text('OK'),
               onPressed: () {
                 Navigator.of(context).pop();
               },

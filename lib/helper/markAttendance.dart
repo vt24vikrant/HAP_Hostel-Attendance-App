@@ -105,6 +105,45 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
       throw 'Device ID does not match the registered device';
     }
 
+    // Geofencing
+    GeoPoint? geofenceCenter = settings['geofenceCenter'] as GeoPoint?;
+    if (geofenceCenter == null) {
+      throw 'Geofence center is not defined in the settings';
+    }
+
+    double geofenceCenterLat = geofenceCenter.latitude.toDouble();
+    double geofenceCenterLng = geofenceCenter.longitude.toDouble();
+
+    print('Geofence Center -> Lat: $geofenceCenterLat, Lng: $geofenceCenterLng');
+
+// Ensure geofenceRadius is parsed correctly from the settings
+    String? geofenceRadiusStr = settings['geofenceRadius'] as String?;
+    if (geofenceRadiusStr == null || geofenceRadiusStr.isEmpty) {
+      throw 'Geofence radius is not defined or invalid in the settings';
+    }
+
+    double geofenceRadius = double.tryParse(geofenceRadiusStr) ?? 0;
+    if (geofenceRadius == 0) {
+      throw 'Geofence radius is invalid or set to 0';
+    }
+
+    Position currentPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+    double distance = Geolocator.distanceBetween(
+      currentPosition.latitude,
+      currentPosition.longitude,
+      geofenceCenterLat,
+      geofenceCenterLng,
+    );
+
+    print('Distance: $distance');
+
+
+    if (distance > geofenceRadius) {
+      throw 'Outside the geofence area';
+    } else {
+      print('Inside the geofence area');
+    }
+
     // Navigate to FaceVerificationPage for face recognition
     bool isFaceVerified = await Navigator.push(
       context,
@@ -117,28 +156,8 @@ Future<void> markAttendance(BuildContext context, LocalAuthentication auth) asyn
       throw 'Face verification failed';
     }
 
-    // Geofencing
-    GeoPoint? geofenceCenter = settings['geofenceCenter'] as GeoPoint?;
-    if (geofenceCenter == null) {
-      throw 'Geofence center is not defined in the settings';
-    }
 
-    double geofenceCenterLat = geofenceCenter.latitude.toDouble();
-    double geofenceCenterLng = geofenceCenter.longitude.toDouble();
-    double geofenceRadius = double.tryParse(settings['geofenceRadius'] ?? '0') ?? 0;
 
-    Position currentPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    double distance = Geolocator.distanceBetween(
-      currentPosition.latitude,
-      currentPosition.longitude,
-      geofenceCenterLat,
-      geofenceCenterLng,
-    );
-
-    print('Distance: $distance');
-    if (distance > geofenceRadius) {
-      throw 'Outside the geofence area';
-    }
 
     String todayDate = DateFormat('yyyy-MM-dd').format(DateTime.now());
 

@@ -82,26 +82,6 @@ Before you begin, ensure you have met the following requirements:
 -   **Wi-Fi Validation:** Prevents unauthorized marking of attendance outside the hostel premises.
 -   **Geolocation Validation:** Adds an additional layer of security by checking the user's physical location.
 -   **Device ID Validation:** Ensures that attendance can only be marked on registered devices.
-### Screenshots
-
-Here are some screenshots of the app in action:
-
-#### Sign-Up Window
-![Sign-Up Window](Screenshots/Screenshot_20240821_003542.png)
-
-#### Login Window
-![Login Window](Screenshots/Screenshot_20240821_000244.png)
-
-#### Supervisor/Warden Landing Page
-![Landing Page](Screenshots/Screenshot_20240821_003748.png)
-
-#### Attendance Marking
-![Attendance Marking](Screenshots/Screenshot_20240821_003947.png)
-![Attendance Marking](Screenshots/pic6.png)
-![Attendance Marking](Screenshots/pic7.png)
-
-#### Attendance Monitor Panel
-![Admin Panel](Screenshots/pic8.png)
 
 
 ### Future Enhancements

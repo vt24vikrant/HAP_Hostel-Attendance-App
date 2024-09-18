@@ -5,6 +5,11 @@
 
 The **Hostel Biometric Attendance App** is a mobile application built with Flutter that allows hostels to automate attendance marking using facial recognition technology. It ensures authenticity by preventing proxy attendance through a multi-layered validation system, including Wi-Fi verification, geolocation checks, and device ID validation. The app is designed to be scalable, secure, and user-friendly, making it practical for real-world deployment.
 
+# Demo
+
+https://github.com/vt24vikrant/HAP_Hostel-Attendance-App/blob/master/Screenshots/demo.mp4
+
+
 ### Features
 
 -   **Facial Recognition for Attendance:** Uses pre-trained face detection and recognition models from Google ML Kit to identify and verify users.
